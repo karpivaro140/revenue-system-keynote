@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One Connected Revenue System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===========================================
+   THEME — "Signal Orbit" with engineering-drawing precision
+   Change colours here; every slide reads from these tokens.
+   Component colour code (used consistently on every slide):
+   strategy = teal · CRM data = blue · pipeline = ice · forecast = amber · AI core = white
+   =========================================== */
+:root{
+  --stage-bg:#030407; --slide-bg:transparent;
+  --ink:#f2f3f7; --mute:#8a90a2; --dim:#5c6274; --hair:#262b3b;
+  --strat:#5fe0c0; --crm:#78a9ff; --pipe:#d6dcf0; --fc:#ffc66d;
+  /* light scene (forecast) */
+  --paper:#f4f3ef; --p-ink:#14161c; --p-mute:#5f6573; --p-hair:#d8d6cf; --p-fc:#a8680c;
+  --sans:'Instrument Sans',sans-serif; --serif:'Instrument Serif',serif; --mono:'JetBrains Mono',monospace;
+  --out:cubic-bezier(.16,1,.3,1); --io:cubic-bezier(.65,0,.35,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ===========================================
+   FIXED 16:9 STAGE — viewport-base.css from the frontend-slides skill, included in full
+   =========================================== */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+    .deck-controls {
+        display: none !important;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* ===========================================
+   SCENE TRANSITIONS
+   Slides crossfade with a small directional drift; delays let the camera move first.
+   =========================================== */
+.deck-stage{background:var(--stage-bg)}
+.slide{font-family:var(--sans);color:var(--ink);
+  transition:opacity .55s var(--io),visibility 0s linear .55s,transform .9s var(--io)}
+.slide.active{transition:opacity .7s var(--io) var(--t0,.3s),visibility 0s,transform 1s var(--out) var(--t0,.3s)}
+/* exiting slide keeps .visible (so its animations hold their final state) while it fades; the controller removes it afterwards */
+.slide.visible:not(.active){opacity:0;pointer-events:none}
+.slide.future{transform:translateX(70px)}
+.slide.past{transform:translateX(-70px)}
+.s2.future{transform:scale(.94);transform-origin:1630px 300px}   /* emerges from the strategy→data arc */
+.instant,.instant *{transition:none!important}
+
+/* ===========================================
+   PERSISTENT SYSTEM LAYER (the orbit) + CAMERA
+   Each scene sets one transform. Zoom on point P by factor s = translate(P·(1−s)) scale(s).
+   =========================================== */
+.system{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;z-index:0;pointer-events:none;will-change:transform,opacity;
+  transition:transform 1.25s var(--io),opacity .9s var(--io)}
+[data-scene="2"] .system{transform:translate(-6512px,-1228px) scale(5);opacity:0}  /* into the 01→02 arc (1628,307) */
+[data-scene="3"] .system{transform:translate(-5580px,-3480px) scale(5);opacity:0}  /* into node 03 (1395,870) */
+[data-scene="4"] .system{transform:translate(-4260px,-2160px) scale(5);opacity:0}  /* into node 04 (1065,540) */
+[data-scene="5"] .system{transform:translate(-496px,128px) scale(.8);opacity:1}     /* back out: whole system, left */
+.halo{position:absolute;left:1095px;top:240px;width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(120,169,255,.10),rgba(120,169,255,.03) 60%,transparent)}
+.orbit{position:absolute;left:945px;top:90px;width:900px;height:900px;overflow:visible}
+.orbit text{font-family:var(--sans);fill:var(--ink)}
+.orbit .lbl{font-size:25px;font-weight:600}
+.orbit .num{font:500 15px var(--mono);fill:var(--mute);letter-spacing:.14em}
+.ring-guide{fill:none;stroke:var(--hair);stroke-width:1}
+.ring{fill:none;stroke:url(#spectrum);stroke-width:2;stroke-dasharray:1;stroke-dashoffset:1}
+.spoke{fill:none;stroke:rgba(242,243,247,.22);stroke-width:1.25;stroke-dasharray:1;stroke-dashoffset:1}
+.pulse{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-dasharray:.03 .97;stroke-dashoffset:.03;opacity:0}
+.spark{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-linecap:round;stroke-dasharray:.1 .9;stroke-dashoffset:.1;opacity:0}
+.node,.core{opacity:0;transform-box:fill-box;transform-origin:center}
+.ticks line{stroke:var(--dim);stroke-width:1}
+/* build once on load: orbit draws, nodes arrive in order, spokes connect, core lights, flow starts */
+.built .ring{animation:draw 1.8s var(--out) .4s forwards}
+.built .node{animation:pop .7s var(--out) forwards}
+.built .n1{animation-delay:.7s}.built .n2{animation-delay:1s}.built .n3{animation-delay:1.3s}.built .n4{animation-delay:1.6s}
+.built .spoke{animation:draw .9s var(--out) forwards}
+.built .k1{animation-delay:1.9s}.built .k2{animation-delay:2s}.built .k3{animation-delay:2.1s}.built .k4{animation-delay:2.2s}
+.built .core{animation:pop 1s var(--out) 2.5s forwards}
+.built .pulse{animation:travel 6s linear 3.1s infinite,fadein .6s 3.1s forwards}
+.built .spark{animation:inward 1.8s var(--out) 3.4s infinite,fadein .4s 3.4s forwards}
+/* while the camera is inside a component the orbit is invisible: pause its loops so the zoom doesn't repaint them every frame */
+[data-scene="2"] .system .pulse,[data-scene="2"] .system .spark,[data-scene="3"] .system .pulse,[data-scene="3"] .system .spark,
+[data-scene="4"] .system .pulse,[data-scene="4"] .system .spark{animation-play-state:paused;visibility:hidden}
+
+/* ===========================================
+   CHROME (outside the slide content, inside the stage)
+   =========================================== */
+.chrome{position:absolute;left:150px;right:120px;top:52px;height:36px;display:flex;justify-content:space-between;align-items:center;z-index:5;
+  font:500 15px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--dim);transition:color .8s var(--io) .2s;pointer-events:none}
+.chrome .right{display:flex;align-items:center;gap:18px}
+.locator{width:40px;height:40px;opacity:0;transition:opacity .6s var(--io)}
+.loc-label{opacity:0;transition:opacity .6s var(--io);color:var(--mute);min-width:250px;text-align:left}
+[data-scene="2"] .locator,[data-scene="3"] .locator,[data-scene="4"] .locator,
+[data-scene="2"] .loc-label,[data-scene="3"] .loc-label,[data-scene="4"] .loc-label{opacity:1}
+.locator circle{transition:fill .5s,stroke .5s,r .5s}
+.locator .lr{fill:none;stroke:currentColor;stroke-width:1.5;opacity:.6}
+.locator .ld{fill:var(--stage-bg);stroke:currentColor;stroke-width:1.5}
+[data-scene="2"] .ld1{fill:var(--strat);stroke:var(--strat)}[data-scene="2"] .ld2{fill:var(--crm);stroke:var(--crm)}
+[data-scene="3"] .ld3{fill:var(--pipe);stroke:var(--pipe)}
+[data-scene="4"] .ld4{fill:var(--p-fc);stroke:var(--p-fc)}
+[data-scene="4"] .chrome{color:#8b8f99}
+[data-scene="4"] .loc-label{color:var(--p-mute)}
+[data-scene="4"] .locator .ld{fill:var(--paper)}
+
+/* shared type */
+.eyebrow{font:500 17px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
+.h{font-weight:600;letter-spacing:-.04em;line-height:1}
+.h em{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-.015em}
+.cap{font:500 14px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.illus{font:500 13px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--fc);border:1px solid rgba(255,198,109,.45);padding:6px 10px;border-radius:3px;display:inline-block}
+.a{opacity:0}
+.visible .a{animation:rise .9s var(--out) both;animation-delay:calc(var(--t0,.3s) + var(--d,0s))}
+
+/* ===========================================
+   SLIDE 1 — One connected revenue system
+   =========================================== */
+.s1{--t0:.1s}
+.s1 .copy{position:absolute;left:150px;top:318px;width:860px}
+.s1 h1{font-size:108px;margin-top:34px}
+.s1 h1 em{color:var(--ink)}
+.s1 h1 em span{color:var(--strat)}
+.s1 .sub{font-size:30px;line-height:1.42;color:var(--mute);margin-top:42px;width:660px}
+.s1 .foot{position:absolute;left:150px;bottom:84px}
+
+/* ===========================================
+   SLIDE 2 — Strategy shapes CRM data and segmentation
+   =========================================== */
+.s2{--t0:.55s}
+.s2 h2{position:absolute;left:150px;top:150px;font-size:84px;width:1100px}
+.s2 h2 em{color:var(--strat)}
+.s2 .sub{position:absolute;left:1320px;top:182px;width:480px;font-size:24px;line-height:1.45;color:var(--mute)}
+.s2 .colh{position:absolute;top:470px}
+.s2 .dec{position:absolute;left:150px;width:440px}
+.s2 .dec b{display:block;font:500 15px var(--mono);letter-spacing:.14em;color:var(--strat);margin-bottom:6px}
+.s2 .dec span{display:block;font-size:28px;font-weight:600;letter-spacing:-.01em}
+.s2 .dec i{display:block;font-style:normal;font-size:19px;color:var(--mute);margin-top:4px}
+.card{position:absolute;left:780px;top:505px;width:410px;height:405px;border:1px solid #39405a;border-radius:4px;background:rgba(10,13,22,.6)}
+.field{position:absolute;left:800px;width:370px;height:56px;display:flex;justify-content:space-between;align-items:center;padding:0 14px 0 18px;border-radius:3px;transition:background .5s}
+.field span{font-size:23px}
+.field small{font:400 14px var(--mono);color:var(--dim);letter-spacing:.06em}
+.field{opacity:0}
+.s2.visible .field{animation:lit .7s var(--out) both;animation-delay:calc(var(--t0) + var(--d))}
+.s2 svg.links{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:visible}
+.links path{fill:none;stroke:var(--strat);stroke-width:1.5;stroke-dasharray:1;stroke-dashoffset:1;opacity:.85}
+.links circle{fill:var(--strat);opacity:0}
+.s2.visible .links path{animation:draw .7s var(--io) forwards;animation-delay:calc(var(--t0) + var(--d))}
+.s2.visible .links circle{animation:fadein .3s forwards;animation-delay:calc(var(--t0) + var(--d))}
+.dots{position:absolute;left:0;top:0}
+.dot{position:absolute;left:0;top:0;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#4a5068;opacity:0;
+  transform:translate(var(--x0),var(--y0))}
+.s2.visible .dot{animation:sort 1.3s var(--io) both;animation-delay:calc(var(--t0) + var(--d))}
+.seglab{position:absolute;top:892px;width:150px;margin-left:-75px;text-align:center}
+.seglab span{display:block;font-size:20px;font-weight:500}
+.seglab small{font:400 14px var(--mono);color:var(--dim);letter-spacing:.08em}
+.s2 .foot{position:absolute;left:1320px;top:972px}
+
+/* ===========================================
+   SLIDE 3 — Pipeline stages (illustrative)
+   =========================================== */
+.s3{--t0:.3s}
+.s3 h2{position:absolute;left:150px;top:128px;font-size:96px}
+.s3 h2 em{color:var(--pipe)}
+.s3 .sub{position:absolute;left:150px;top:252px;font-size:26px;color:var(--mute)}
+.s3 .tag{position:absolute;right:120px;top:262px}
+.s3 svg.flow{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:visible}
+.flow .bar{transform-box:fill-box;transform-origin:top;transform:scaleY(0)}
+.s3.visible .flow .bar{animation:grow .9s var(--out) forwards;animation-delay:calc(var(--t0) + var(--d))}
+.flow .band,.flow .loss{opacity:0}
+.s3.visible .flow .band,.s3.visible .flow .loss{animation:fadein .8s var(--io) forwards;animation-delay:calc(var(--t0) + var(--d))}
+.stg{position:absolute;top:338px;width:240px;margin-left:-48px}
+.stg b{display:block;font:500 14px var(--mono);letter-spacing:.14em;color:var(--mute)}
+.stg span{display:block;font-size:56px;font-weight:600;letter-spacing:-.03em;line-height:1.05}
+.conv{position:absolute;transform:translate(-50%,-50%);font:500 19px var(--mono);color:#0b0d14;background:var(--pipe);padding:4px 9px;border-radius:3px}
+.lost{position:absolute;font:400 15px var(--mono);color:var(--dim);letter-spacing:.04em}
+.ptc{position:absolute;left:0;top:0;width:7px;height:7px;border-radius:50%;background:var(--ink);offset-anchor:center;offset-rotate:0deg;opacity:0}
+.ptc.l{background:#6b7186}
+.s3.visible .ptc{animation:along var(--dur) linear infinite;animation-delay:calc(var(--t0) + 2.2s + var(--d))}
+.kpis{position:absolute;left:150px;right:120px;top:928px;display:flex;gap:90px;align-items:flex-end;border-top:1px solid var(--hair);padding-top:22px}
+.kpi b{display:block;font:500 14px var(--mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+.kpi span{font-size:44px;font-weight:600;letter-spacing:-.02em}
+.kpi small{font-size:18px;color:var(--mute);margin-left:8px}
+.kpis .note{margin-left:auto;max-width:430px;font-size:16px;line-height:1.4;color:var(--dim);text-align:right}
+
+/* ===========================================
+   SLIDE 4 — Forecast range (LIGHT scene; opens as an iris from the locator's forecast node)
+   =========================================== */
+.s4{--t0:.85s;background:transparent;color:var(--p-ink);opacity:1;transition:visibility 0s linear .9s}
+.s4.active{transition:visibility 0s}
+.s4.visible:not(.active){opacity:1}
+.s4 .s4c{position:absolute;inset:0;transition:opacity .35s var(--io)}
+.s4.visible:not(.active) .s4c{opacity:0}   /* fade content as one layer while the paper disc closes */
+/* paper disc grows from the locator's forecast dot (transform only, so it stays on the compositor) */
+.s4 .disk{position:absolute;left:calc(var(--ix,1690px) - 2300px);top:calc(var(--iy,70px) - 2300px);width:4600px;height:4600px;border-radius:50%;
+  background:var(--paper);transform:scale(0);will-change:transform;transition:transform .9s var(--io)}
+.s4.active .disk{transform:scale(1);transition:transform 1.15s var(--io) .1s}
+.s4.future,.s4.past{transform:none}
+.s4 .eyebrow{color:var(--p-mute)}
+.s4 h2{position:absolute;left:150px;top:140px;font-size:88px}
+.s4 h2 em{color:var(--p-fc)}
+.s4 .sub{position:absolute;left:150px;top:252px;width:1100px;font-size:25px;line-height:1.45;color:var(--p-mute)}
+.s4 svg.chart{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:visible}
+.chart text{font-family:var(--mono);font-size:15px;fill:var(--p-mute)}
+.chart .grid line{stroke:var(--p-hair);stroke-width:1}
+.chart .axis{opacity:0}
+.s4.visible .chart .axis{animation:fadein .6s forwards;animation-delay:calc(var(--t0) + .1s)}
+.chart .ln{fill:none;stroke-dasharray:1;stroke-dashoffset:1}
+.s4.visible .chart .ln{animation:draw var(--dur,1s) var(--io) forwards;animation-delay:calc(var(--t0) + var(--d))}
+.chart .band{clip-path:inset(0 100% 0 0)}
+.s4.visible .chart .band{animation:open 1.2s var(--io) forwards;animation-delay:calc(var(--t0) + 1.75s)}
+.chart .lab{opacity:0}
+.s4.visible .chart .lab{animation:fadein .5s forwards;animation-delay:calc(var(--t0) + var(--d))}
+.chart .lab text.big{font:600 24px var(--sans);fill:var(--p-ink)}
+.defs{position:absolute;left:1480px;top:420px;width:320px}
+.def{padding:22px 0;border-top:1px solid var(--p-hair)}
+.def b{display:flex;align-items:center;gap:12px;font:500 14px var(--mono);letter-spacing:.14em;text-transform:uppercase}
+.def b i{display:inline-block;width:34px;height:0;border-top:3px solid var(--p-ink)}
+.def p{font-size:20px;line-height:1.4;color:var(--p-mute);margin-top:8px}
+.s4 .illus{color:var(--p-fc);border-color:rgba(168,104,12,.5)}
+.s4 .foot{position:absolute;left:1480px;top:900px;width:320px}
+.s4 .foot p{font-size:15px;line-height:1.45;color:var(--p-mute);margin-top:12px}
+
+/* ===========================================
+   SLIDE 5 — AI-assisted recommendations, human approval, feedback into strategy
+   =========================================== */
+.s5{--t0:1.05s}
+.s5 h2{position:absolute;left:1080px;top:128px;font-size:80px;line-height:1.02}
+.s5 h2 em{color:var(--ink)}
+.s5 .sub{position:absolute;left:1080px;top:318px;width:700px;font-size:23px;line-height:1.45;color:var(--mute)}
+.steps{position:absolute;left:1080px;top:452px;width:720px}
+.step{position:absolute;left:0;width:720px;padding-left:56px}
+.step b{display:block;font:500 14px var(--mono);letter-spacing:.14em;color:var(--mute)}
+.step span{display:block;font-size:27px;font-weight:600;margin-top:4px}
+.step p{font-size:18px;color:var(--mute);margin-top:4px}
+.rec{margin-top:10px;border:1px solid #39405a;border-radius:4px;padding:12px 16px;font:400 15px/1.5 var(--mono);color:#b8bdcc;background:rgba(10,13,22,.6);width:620px}
+.rec em{font-style:normal;color:var(--fc)}
+.chips{display:flex;gap:10px;margin-top:10px}
+.chips i{font:500 15px var(--mono);font-style:normal;letter-spacing:.08em;padding:7px 14px;border:1px solid #4a5168;border-radius:3px;color:var(--ink)}
+.chips i:first-child{border-color:var(--strat);color:var(--strat)}
+.s5 svg.loop{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:visible}
+.loop .rail{stroke:#39405a;stroke-width:1.5;stroke-dasharray:1;stroke-dashoffset:1}
+.s5.visible .loop .rail{animation:draw 1.3s var(--io) forwards;animation-delay:calc(var(--t0) + .2s)}
+.loop .fb{fill:none;stroke:var(--strat);stroke-width:2;stroke-dasharray:1;stroke-dashoffset:1}
+.s5.visible .loop .fb{animation:draw 1.2s var(--io) forwards;animation-delay:calc(var(--t0) + 2.3s)}
+.loop .mk{opacity:0}
+.s5.visible .loop .mk{animation:fadein .4s forwards;animation-delay:calc(var(--t0) + var(--d))}
+.loop .ping{fill:none;stroke:var(--strat);stroke-width:2;opacity:0;transform-box:fill-box;transform-origin:center}
+.s5.visible .loop .ping{animation:ping 3.2s var(--out) infinite;animation-delay:calc(var(--t0) + 3.5s + 1.45s)}
+.fbdot{position:absolute;left:0;top:0;width:10px;height:10px;border-radius:50%;background:var(--strat);offset-anchor:center;offset-rotate:0deg;opacity:0;
+  offset-path:path('M1100 848 H1035 V296 H640')}
+.s5.visible .fbdot{animation:along 1.6s var(--io) infinite;--dur:3.2s;animation-duration:3.2s;animation-delay:calc(var(--t0) + 3.5s)}
+.fblab{position:absolute;left:1046px;top:640px;transform:rotate(-90deg);transform-origin:left top;opacity:0}
+.s5.visible .fblab{animation:fadein .6s forwards;animation-delay:calc(var(--t0) + 3s)}
+.s5 .principle{position:absolute;left:150px;right:120px;top:968px;border-top:1px solid var(--hair);padding-top:20px;display:flex;justify-content:space-between;
+  font-size:18px;color:var(--mute)}
+.s5 .principle b{font:500 14px var(--mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase;margin-right:14px}
+
+/* ===========================================
+   KEYFRAMES
+   =========================================== */
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes pop{from{opacity:0;transform:scale(.45)}to{opacity:1;transform:none}}
+@keyframes fadein{to{opacity:1}}
+@keyframes travel{to{stroke-dashoffset:-.97}}
+@keyframes inward{from{stroke-dashoffset:.1}to{stroke-dashoffset:-.9}}
+@keyframes grow{to{transform:scaleY(1)}}
+@keyframes open{to{clip-path:inset(0 0 0 0)}}
+@keyframes lit{0%{background:transparent;opacity:.32}40%{background:rgba(95,224,192,.20);opacity:1}100%{background:rgba(95,224,192,.07);opacity:1}}
+@keyframes sort{0%{opacity:0;transform:translate(var(--x0),var(--y0))}15%{opacity:1}55%{transform:translate(var(--x0),var(--y0));background:#4a5068}
+  100%{opacity:1;transform:translate(var(--x1),var(--y1));background:var(--c)}}
+@keyframes along{0%{offset-distance:0%;opacity:0}12%{opacity:1}85%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@keyframes ping{0%{opacity:.9;transform:scale(1)}60%{opacity:0;transform:scale(3.2)}100%{opacity:0;transform:scale(3.2)}}
+
+/* ===========================================
+   PRESENTER UI (outside the stage)
+   =========================================== */
+.progress{position:fixed;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.06);z-index:20}
+.progress i{display:block;height:100%;width:20%;background:#8a90a2;transition:width .6s var(--io)}
+.edit-hotzone{position:fixed;top:0;left:0;width:80px;height:80px;z-index:10000;cursor:pointer}
+.edit-toggle{position:fixed;top:16px;left:16px;z-index:10001;opacity:0;pointer-events:none;transition:opacity .3s;
+  font:500 13px var(--mono);letter-spacing:.1em;background:#1b1f2c;color:#f2f3f7;border:1px solid #3a4058;border-radius:4px;padding:8px 12px;cursor:pointer}
+.edit-toggle.show,.edit-toggle.active{opacity:1;pointer-events:auto}
+.editing [data-edit]{outline:1px dashed rgba(120,169,255,.6);outline-offset:4px}
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage" data-scene="1">
+
+  <!-- === SYSTEM LAYER: one orbit shared by every scene (camera set per scene in CSS) === -->
+  <div class="system" id="system" aria-hidden="true">
+    <div class="halo"></div>
+    <svg class="orbit" viewBox="0 0 900 900">
+      <defs><linearGradient id="spectrum" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5fe0c0"/><stop offset=".5" stop-color="#78a9ff"/><stop offset="1" stop-color="#ffc66d"/></linearGradient>
+        <radialGradient id="coreFill"><stop offset="0" stop-color="#dfe8ff" stop-opacity=".55"/><stop offset=".6" stop-color="#78a9ff" stop-opacity=".12"/><stop offset="1" stop-color="#78a9ff" stop-opacity="0"/></radialGradient></defs>
+      <circle class="ring-guide" cx="450" cy="450" r="330"/>
+      <circle class="ring-guide" cx="450" cy="450" r="210" stroke-dasharray="2 9"/>
+      <g class="ticks" id="ticks"></g>
+      <path class="ring" pathLength="1" d="M450 120 A330 330 0 1 1 449.9 120"/>
+      <path class="spoke k1" pathLength="1" d="M450 132 L450 366"/><path class="spoke k2" pathLength="1" d="M768 450 L534 450"/>
+      <path class="spoke k3" pathLength="1" d="M450 768 L450 534"/><path class="spoke k4" pathLength="1" d="M132 450 L366 450"/>
+      <path class="pulse" pathLength="1" d="M450 120 A330 330 0 1 1 449.9 120"/>
+      <path class="spark" pathLength="1" d="M450 132 L450 366"/>
+      <path class="spark" pathLength="1" d="M768 450 L534 450" style="animation-delay:3.85s,3.85s"/>
+      <path class="spark" pathLength="1" d="M450 768 L450 534" style="animation-delay:4.3s,4.3s"/>
+      <path class="spark" pathLength="1" d="M132 450 L366 450" style="animation-delay:4.75s,4.75s"/>
+      <g class="core"><circle cx="450" cy="450" r="140" fill="url(#coreFill)"/><circle cx="450" cy="450" r="84" fill="#0a0d16" stroke="#cfd9f2" stroke-width="1.25"/>
+        <text x="450" y="443" text-anchor="middle" class="lbl" style="font-size:24px">AI-assisted</text><text x="450" y="472" text-anchor="middle" style="font-size:21px;fill:#aab3c9">decisions</text></g>
+      <g class="node n1"><circle cx="450" cy="120" r="11" fill="#030407" stroke="#5fe0c0" stroke-width="3"/><text x="450" y="64" text-anchor="middle" class="num">01</text><text x="450" y="94" text-anchor="middle" class="lbl">Go-to-market strategy</text></g>
+      <g class="node n2"><circle cx="780" cy="450" r="11" fill="#030407" stroke="#78a9ff" stroke-width="3"/><text x="804" y="430" class="num">02</text><text x="804" y="461" class="lbl">CRM data</text></g>
+      <g class="node n3"><circle cx="450" cy="780" r="11" fill="#030407" stroke="#d6dcf0" stroke-width="3"/><text x="450" y="826" text-anchor="middle" class="num">03</text><text x="450" y="856" text-anchor="middle" class="lbl">Pipeline</text></g>
+      <g class="node n4"><circle cx="120" cy="450" r="11" fill="#030407" stroke="#ffc66d" stroke-width="3"/><text x="96" y="430" text-anchor="end" class="num">04</text><text x="96" y="461" text-anchor="end" class="lbl">Forecast</text></g>
+    </svg>
+  </div>
+
+  <!-- === SLIDE 1 === -->
+  <section class="slide s1 active visible" aria-label="One connected revenue system">
+    <div class="copy">
+      <div class="eyebrow a" style="--d:0s" data-edit>Revenue Operations</div>
+      <h1 class="h a" style="--d:.15s" data-edit>One connected <em>revenue system.</em></h1>
+      <p class="sub a" style="--d:.4s" data-edit>Strategy, CRM data, pipeline and forecasting feed one place where decisions are made, with a person accountable for each one.</p>
+    </div>
+    <div class="foot cap a" style="--d:.6s">RevOps Strategy Office · Concept</div>
+  </section>
+
+  <!-- === SLIDE 2 === -->
+  <section class="slide s2 future" aria-label="Strategy shapes CRM data and segmentation">
+    <h2 class="h a" style="--d:0s" data-edit>Strategy decides <em>what the CRM must know.</em></h2>
+    <p class="sub a" style="--d:.2s" data-edit>Each go-to-market choice becomes a field, a rule and a segment. If it isn't captured in the data, it can't be managed.</p>
+    <div class="colh cap a" style="left:150px;--d:.3s">A · Go-to-market decisions</div>
+    <div class="colh cap a" style="left:780px;--d:.3s">B · CRM account record</div>
+    <div class="colh cap a" style="left:1320px;--d:.3s">C · Resulting segments</div>
+    <div class="dec a" style="top:512px;--d:.4s"><b>A1</b><span data-edit>Ideal customer profile</span><i data-edit>Which accounts we want</i></div>
+    <div class="dec a" style="top:612px;--d:.5s"><b>A2</b><span data-edit>Segments &amp; tiers</span><i data-edit>How we group and prioritise them</i></div>
+    <div class="dec a" style="top:712px;--d:.6s"><b>A3</b><span data-edit>Territories &amp; coverage</span><i data-edit>Who owns which accounts</i></div>
+    <div class="dec a" style="top:812px;--d:.7s"><b>A4</b><span data-edit>Sales motion</span><i data-edit>Direct or partner-led</i></div>
+    <div class="card a" style="--d:.45s"></div>
+    <div class="field" style="top:522px;--d:1.25s"><span>ICP fit score</span><small>0–100</small></div>
+    <div class="field" style="top:587px;--d:1.55s"><span>Segment</span><small>picklist</small></div>
+    <div class="field" style="top:652px;--d:1.6s"><span>Tier</span><small>A · B · C</small></div>
+    <div class="field" style="top:717px;--d:1.85s"><span>Territory</span><small>region code</small></div>
+    <div class="field" style="top:782px;--d:1.9s"><span>Account owner</span><small>assignment rule</small></div>
+    <div class="field" style="top:847px;--d:2.15s"><span>Coverage model</span><small>direct · partner</small></div>
+    <svg class="links" viewBox="0 0 1920 1080" aria-hidden="true">
+      <!-- leader lines: decision → field it creates (orthogonal, engineering style) -->
+      <path pathLength="1" style="--d:.95s" d="M612 552 H780"/>
+      <path pathLength="1" style="--d:1.25s" d="M612 652 H690 V615 H780"/><path pathLength="1" style="--d:1.3s" d="M612 652 H690 V680 H780"/>
+      <path pathLength="1" style="--d:1.55s" d="M612 752 H700 V745 H780"/><path pathLength="1" style="--d:1.6s" d="M612 752 H700 V810 H780"/>
+      <path pathLength="1" style="--d:1.85s" d="M612 852 H690 V875 H780"/>
+      <circle cx="612" cy="552" r="4" style="--d:.95s"/><circle cx="612" cy="652" r="4" style="--d:1.25s"/><circle cx="612" cy="752" r="4" style="--d:1.55s"/><circle cx="612" cy="852" r="4" style="--d:1.85s"/>
+      <!-- segmentation rule: record → segments -->
+      <path pathLength="1" style="--d:2.4s;stroke:var(--crm)" d="M1190 707 H1300"/><path pathLength="1" style="--d:2.9s;stroke:var(--crm)" d="M1290 699 L1300 707 L1290 715"/>
+    </svg>
+    <div class="dots" id="dots"></div>
+    <div class="seglab a" style="left:1400px;--d:3.4s"><span>Enterprise</span><small>12 accounts</small></div>
+    <div class="seglab a" style="left:1570px;--d:3.5s"><span>Mid-market</span><small>28 accounts</small></div>
+    <div class="seglab a" style="left:1740px;--d:3.6s"><span>Partner-led</span><small>20 accounts</small></div>
+    <div class="foot a" style="--d:3.7s"><span class="illus">Illustrative accounts</span></div>
+  </section>
+
+  <!-- === SLIDE 3 === -->
+  <section class="slide s3 future" aria-label="Pipeline stages and illustrative conversion">
+    <h2 class="h a" style="--d:0s" data-edit>Pipeline is a <em>flow,</em> not a list.</h2>
+    <p class="sub a" style="--d:.2s" data-edit>One illustrative quarter: how 120 qualified opportunities move, and leak, stage by stage.</p>
+    <div class="tag a" style="--d:.3s"><span class="illus">Illustrative data · not actual performance</span></div>
+    <svg class="flow" id="flow" viewBox="0 0 1920 1080" aria-label="Five pipeline stages with conversion between them"></svg>
+    <div id="flowText"></div>
+    <div class="kpis a" style="--d:2.4s">
+      <div class="kpi"><b>Win rate from qualified</b><span>14%</span><small>17 of 120</small></div>
+      <div class="kpi"><b>Average sales cycle</b><span>70</span><small>days</small></div>
+      <div class="kpi"><b>Pipeline coverage</b><span>3.2×</span><small>of remaining target</small></div>
+      <p class="note">Every figure on this slide is illustrative. It shows how the metrics relate to each other, not any company's results.</p>
+    </div>
+  </section>
+
+  <!-- === SLIDE 4 (light) === -->
+  <section class="slide s4 future" aria-label="Forecast with commit and best-case scenarios, illustrative">
+    <div class="disk" aria-hidden="true"></div>
+    <div class="s4c">
+    <h2 class="h a" style="--d:0s" data-edit>A forecast is a <em>range</em> you manage.</h2>
+    <p class="sub a" style="--d:.2s" data-edit>Commit is what owners expect to close with high confidence. Best case adds upside deals that could still land.</p>
+    <svg class="chart" id="chart" viewBox="0 0 1920 1080" aria-label="Illustrative quarter: actual bookings to week 7, then commit and best-case projections against target"></svg>
+    <div class="defs">
+      <div class="def a" style="--d:2.6s"><b><i></i>Commit</b><p>Deals the owner expects to close this quarter with high confidence.</p></div>
+      <div class="def a" style="--d:2.75s"><b><i style="border-top:3px solid var(--p-fc)"></i>Best case</b><p>Commit plus upside deals that could close if they progress.</p></div>
+      <div class="def a" style="--d:2.9s"><b><i style="border-top:2px dashed #9aa0ad"></i>Target · gap</b><p>The gap is what commit still lacks against target: pipeline to create, accelerate or recover.</p></div>
+    </div>
+    <div class="foot a" style="--d:3.1s"><span class="illus">Illustrative data</span><p>Values in millions for a fictional quarter. They do not represent actual results or forecasts.</p></div>
+  </div>
+  </section>
+
+  <!-- === SLIDE 5 === -->
+  <section class="slide s5 future" aria-label="AI-assisted recommendations with human approval">
+    <h2 class="h a" style="--d:0s" data-edit>AI recommends.<br><em>People decide.</em></h2>
+    <p class="sub a" style="--d:.2s" data-edit>Each recommendation arrives with its evidence. An accountable owner approves, adjusts or rejects it, and every outcome feeds back into strategy.</p>
+    <svg class="loop" viewBox="0 0 1920 1080" aria-hidden="true">
+      <line class="rail" pathLength="1" x1="1100" y1="470" x2="1100" y2="848"/>
+      <rect class="mk" x="1093" y="463" width="14" height="14" fill="#030407" stroke="#8a90a2" stroke-width="1.5" style="--d:.3s"/>
+      <rect class="mk" x="1093" y="563" width="14" height="14" fill="#030407" stroke="#f2f3f7" stroke-width="1.5" style="--d:.6s"/>
+      <polygon class="mk" points="1100,705 1111,716 1100,727 1089,716" fill="#030407" stroke="#5fe0c0" stroke-width="1.5" style="--d:1.2s"/>
+      <rect class="mk" x="1093" y="841" width="14" height="14" fill="#030407" stroke="#8a90a2" stroke-width="1.5" style="--d:1.6s"/>
+      <path class="fb" pathLength="1" d="M1093 848 H1035 V296 H636"/>
+      <circle class="ping" cx="620" cy="296" r="13"/>
+    </svg>
+    <div class="steps">
+      <div class="step a" style="top:0;--d:.3s"><b>01 · SIGNALS</b><span data-edit>Pipeline, forecast and account changes</span></div>
+      <div class="step a" style="top:100px;--d:.6s"><b>02 · AI RECOMMENDATION</b><span data-edit>A suggested action, with its evidence</span>
+        <div class="rec">Prioritise 6 proposal-stage deals stalled &gt;30 days<br>Evidence: stage history, activity gaps · Confidence: <em>medium</em></div></div>
+      <div class="step a" style="top:262px;--d:1.2s"><b>03 · HUMAN APPROVAL</b><span data-edit>An accountable owner decides</span>
+        <div class="chips"><i>Approve</i><i>Adjust</i><i>Reject</i></div></div>
+      <div class="step a" style="top:384px;--d:1.6s"><b>04 · ACTION &amp; OUTCOME</b><span data-edit>Logged in CRM and measured against the KPI</span></div>
+    </div>
+    <div class="fbdot"></div>
+    <div class="fblab cap">Outcome → strategy</div>
+    <div class="principle a" style="--d:2s"><span><b>Principle</b>No automated change to customers, prices or the forecast without an owner's approval.</span><span class="illus">Example recommendation is illustrative</span></div>
+  </section>
+
+  <!-- === CHROME === -->
+  <div class="chrome" aria-hidden="true">
+    <span>RevOps Strategy Office</span>
+    <span class="right"><span class="loc-label" id="locLabel"></span>
+      <svg class="locator" id="locator" viewBox="0 0 40 40"><circle class="lr" cx="20" cy="20" r="14"/>
+        <circle class="ld ld1" cx="20" cy="6" r="3.5"/><circle class="ld ld2" cx="34" cy="20" r="3.5"/><circle class="ld ld3" cx="20" cy="34" r="3.5"/><circle class="ld ld4" cx="6" cy="20" r="3.5"/><circle cx="20" cy="20" r="2.5" fill="currentColor"/></svg>
+      <span id="counter">01 / 05</span></span>
+  </div>
+</main>
+</div>
+<div class="progress"><i id="progress"></i></div>
+<div class="edit-hotzone" id="hotzone"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)">EDIT</button>
+
+<script>
+/* ===========================================
+   DATA (all illustrative) + GENERATED GRAPHICS
+   Generators clear their containers first, so a saved/edited file stays clean on reload.
+   =========================================== */
+const NS='http://www.w3.org/2000/svg';
+const el=(tag,attrs={},parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);parent&&parent.appendChild(e);return e};
+
+/* orbit tick marks — the engineering-drawing detail */
+(function ticks(){const g=document.getElementById('ticks');g.innerHTML='';
+  for(let i=0;i<72;i++){const a=i*5*Math.PI/180,r1=i%6?344:338,r2=352;
+    el('line',{x1:450+r1*Math.sin(a),y1:450-r1*Math.cos(a),x2:450+r2*Math.sin(a),y2:450-r2*Math.cos(a)},g)}})();
+
+/* SLIDE 2 — accounts sort from an unstructured cloud into strategy-defined segments */
+(function dots(){const box=document.getElementById('dots');box.innerHTML='';
+  let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  const segs=[{n:12,x:1400,c:'var(--strat)'},{n:28,x:1570,c:'var(--crm)'},{n:20,x:1740,c:'var(--fc)'}];
+  let k=0;segs.forEach(s=>{for(let i=0;i<s.n;i++,k++){const d=document.createElement('i');d.className='dot';
+    const col=i%5,row=Math.floor(i/5);
+    d.style.cssText=`--x0:${1340+rnd()*440}px;--y0:${530+rnd()*190}px;--x1:${s.x-44+col*22}px;--y1:${868-row*22}px;--c:${s.c};--d:${(2.5+rnd()*.7).toFixed(2)}s`;
+    box.appendChild(d)}});})();
+
+/* SLIDE 3 — pipeline flow: bars hang from a baseline; conversion continues right, losses fall away */
+(function flow(){const svg=document.getElementById('flow'),txt=document.getElementById('flowText');svg.innerHTML='';txt.innerHTML='';
+  const st=[['QUALIFIED',120],['DISCOVERY',78],['PROPOSAL',47],['NEGOTIATION',29],['CLOSED WON',17]];
+  const X=i=>250+i*355,W=96,Y0=450,K=3.2;
+  const defs=el('defs',{},svg);
+  const lg=el('linearGradient',{id:'lossG',x1:0,y1:0,x2:0,y2:1},defs);el('stop',{offset:0,'stop-color':'#d6dcf0','stop-opacity':.22},lg);el('stop',{offset:1,'stop-color':'#d6dcf0','stop-opacity':0},lg);
+  const bg=el('linearGradient',{id:'bandG',x1:0,y1:0,x2:1,y2:0},defs);el('stop',{offset:0,'stop-color':'#d6dcf0','stop-opacity':.32},bg);el('stop',{offset:1,'stop-color':'#d6dcf0','stop-opacity':.16},bg);
+  el('line',{x1:150,x2:1800,y1:Y0,y2:Y0,stroke:'#262b3b','stroke-width':1},svg);
+  const ptc=[];
+  st.forEach(([name,v],i)=>{const h=v*K,x=X(i)-W/2;
+    if(i<st.length-1){const h2=st[i+1][1]*K,x1=x+W,x2=X(i+1)-W/2,lost=v-st[i+1][1];
+      el('rect',{class:'band',x:x1,y:Y0,width:x2-x1,height:h2,fill:'url(#bandG)',style:`--d:${.55+i*.25}s`},svg);
+      const yA=Y0+h2,yB=Y0+h;
+      el('path',{class:'loss',d:`M${x1} ${yA} C${x1+60} ${yA} ${x1+110} ${yA+40} ${x1+130} ${960} L${x1+70} 960 C${x1+60} ${yB+30} ${x1+30} ${yB} ${x1} ${yB} Z`,fill:'url(#lossG)',style:`--d:${.7+i*.25}s`},svg);
+      const c=document.createElement('div');c.className='conv a';c.style.cssText=`left:${(x1+x2)/2}px;top:${Y0+h2/2}px;--d:${1.3+i*.2}s`;c.textContent=Math.round(st[i+1][1]/v*100)+'%';txt.appendChild(c);
+      const l=document.createElement('div');l.className='lost a';l.style.cssText=`left:${x1+18}px;top:${Math.max(yB+12,yA+34)}px;--d:${1.5+i*.2}s`;l.textContent=`−${lost} lost`;txt.appendChild(l);
+      for(let p=0;p<5;p++)ptc.push({path:`M${x1-W/2} ${Y0+h2*(.2+.15*p)} H${x2+W/2}`,dur:2.4,d:i*.35+p*.48,cls:''});
+      ptc.push({path:`M${x1-10} ${(yA+yB)/2} C${x1+50} ${(yA+yB)/2} ${x1+90} ${yA+60} ${x1+100} 940`,dur:2.2,d:i*.5+.9,cls:'l'});}
+    el('rect',{class:'bar',x,y:Y0,width:W,height:h,fill:i===4?'#ffc66d':'#d6dcf0',style:`--d:${.25+i*.18}s`},svg);
+    const s=document.createElement('div');s.className='stg a';s.style.cssText=`left:${X(i)}px;--d:${.3+i*.15}s`;
+    s.innerHTML=`<b>${String(i+1).padStart(2,'0')} · ${name}</b><span>${v}</span>`;txt.appendChild(s);});
+  ptc.forEach(p=>{const d=document.createElement('i');d.className='ptc '+p.cls;d.style.cssText=`offset-path:path('${p.path}');--dur:${p.dur}s;--d:${p.d.toFixed(2)}s`;txt.appendChild(d)});})();
+
+/* SLIDE 4 — forecast: actuals to "today", then the commit–best-case range opens against target */
+(function chart(){const svg=document.getElementById('chart');svg.innerHTML='';
+  const x=w=>200+w*80, y=v=>900-v*36.43;
+  const actual=[0,.6,1.4,2.1,3.0,3.8,4.9,5.6], commit=[5.6,6.4,7.1,7.9,8.6,9.2,9.8], best=[5.6,6.9,8.2,9.4,10.6,11.8,12.9], target=12.0;
+  const pts=(arr,w0)=>arr.map((v,i)=>`${x(w0+i)} ${y(v)}`).join(' L');
+  const ax=el('g',{class:'axis'},svg),gr=el('g',{class:'grid'},ax);
+  [0,4,8,12].forEach(v=>{el('line',{x1:200,x2:1240,y1:y(v),y2:y(v)},gr);el('text',{x:182,y:y(v)+5,'text-anchor':'end'},ax).textContent=v});
+  for(let w=1;w<=13;w+=2)el('text',{x:x(w),y:932,'text-anchor':'middle'},ax).textContent='W'+w;
+  el('text',{x:200,y:372},ax).textContent='CUMULATIVE BOOKINGS · MILLIONS';
+  el('text',{x:1240,y:968,'text-anchor':'end'},ax).textContent='WEEK OF QUARTER';
+  // today marker
+  el('line',{x1:x(7),x2:x(7),y1:395,y2:900,stroke:'#14161c','stroke-width':1,'stroke-dasharray':'3 5'},ax);
+  el('text',{x:x(7)+10,y:410,style:'fill:#14161c'},ax).textContent='TODAY · W7';
+  // target
+  el('line',{x1:200,x2:1240,y1:y(target),y2:y(target),stroke:'#9aa0ad','stroke-width':2,'stroke-dasharray':'8 8'},ax);
+  el('text',{x:210,y:y(target)-12},ax).textContent='TARGET 12.0';
+  // range band
+  const band=`M${pts(best,7)} L${[...commit].reverse().map((v,i)=>`${x(13-i)} ${y(v)}`).join(' L')} Z`;
+  el('path',{class:'band',d:band,fill:'rgba(168,104,12,.13)'},svg);
+  el('path',{class:'ln',d:'M'+pts(actual,0),stroke:'#14161c','stroke-width':4,'stroke-linejoin':'round',pathLength:1,style:'--d:.45s;--dur:1.3s'},svg);
+  el('path',{class:'ln',d:'M'+pts(commit,7),stroke:'#14161c','stroke-width':3,pathLength:1,style:'--d:1.8s;--dur:1.1s'},svg);
+  el('path',{class:'ln',d:'M'+pts(best,7),stroke:'#a8680c','stroke-width':3,'stroke-dasharray':'1',pathLength:1,style:'--d:1.9s;--dur:1.1s'},svg);
+  el('circle',{cx:x(7),cy:y(5.6),r:7,fill:'#14161c',class:'lab',style:'--d:1.7s'},svg);
+  const lab=(t1,t2,yy,d,col)=>{const g=el('g',{class:'lab',style:`--d:${d}s`},svg);el('text',{x:1262,y:yy-6,style:`fill:${col}`},g).textContent=t1;const b=el('text',{x:1262,y:yy+22,class:'big'},g);b.textContent=t2;return g};
+  lab('BEST CASE','12.9',y(12.9)-4,2.9,'#a8680c');
+  lab('COMMIT','9.8',y(9.8)+4,3.0,'#14161c');
+  // gap bracket: commit vs target at quarter end
+  const g=el('g',{class:'lab',style:'--d:3.3s'},svg);
+  el('path',{d:`M1360 ${y(target)} H1372 V${y(9.8)} H1360`,fill:'none',stroke:'#5f6573','stroke-width':1.5},g);
+  el('text',{x:1384,y:(y(target)+y(9.8))/2+2},g).textContent='GAP';
+  el('text',{x:1384,y:(y(target)+y(9.8))/2+26,class:'big'},g).textContent='2.2';})();
+
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   Keyboard (← → Space PgUp PgDn Home End), wheel, swipe; F = fullscreen; E = edit mode.
+   =========================================== */
+class SlidePresentation{
+  constructor(){
+    this.stage=document.getElementById('deckStage');this.slides=[...document.querySelectorAll('.slide')];this.i=0;this.lock=0;
+    this.labels=['','Strategy → CRM data','Pipeline','Forecast',''];
+    this.setupScale();this.setupNav();
+    requestAnimationFrame(()=>document.getElementById('system').classList.add('built'));
+    this.go(0,{instant:true});
+  }
+  setupScale(){const f=()=>{const k=Math.min(innerWidth/1920,innerHeight/1080);this.k=k;
+    this.stage.style.transform=`translate(${(innerWidth-1920*k)/2}px,${(innerHeight-1080*k)/2}px) scale(${k})`};f();addEventListener('resize',f)}
+  setupNav(){
+    document.addEventListener('keydown',e=>{if(e.target.isContentEditable)return;
+      if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();this.go(this.i+1)}
+      else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();this.go(this.i-1)}
+      else if(e.key==='Home')this.go(0);else if(e.key==='End')this.go(this.slides.length-1);
+      else if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}});
+    addEventListener('wheel',e=>{const t=Date.now();if(t-this.lock<1100||Math.abs(e.deltaY)<20)return;this.lock=t;this.go(this.i+(e.deltaY>0?1:-1))},{passive:true});
+    let sx=null;addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
+    addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)this.go(this.i+(dx<0?1:-1));sx=null});
+  }
+  go(n,opt={}){
+    n=Math.max(0,Math.min(n,this.slides.length-1));
+    if(opt.instant)this.stage.classList.add('instant');
+    // iris origin for the light scene = centre of the locator's forecast dot, in stage coordinates
+    const d=document.querySelector('.ld4').getBoundingClientRect(),s=this.stage.getBoundingClientRect(),k=this.k||1;
+    this.stage.style.setProperty('--ix',((d.left+d.width/2-s.left)/k).toFixed(1)+'px');this.stage.style.setProperty('--iy',((d.top+d.height/2-s.top)/k).toFixed(1)+'px');
+    this.i=n;this.stage.dataset.scene=n+1;
+    this.slides.forEach((sl,j)=>{const on=j===n;
+      sl.classList.toggle('active',on);sl.classList.toggle('past',j<n);sl.classList.toggle('future',j>n);
+      clearTimeout(sl._t);
+      if(on){sl.classList.remove('visible');void sl.offsetWidth;sl.classList.add('visible')}          // restart this slide's motion
+      else if(sl.classList.contains('visible')){if(opt.instant)sl.classList.remove('visible');      // leaving: hold final state while it exits
+        else sl._t=setTimeout(()=>sl.classList.remove('visible'),1000)}});
+    document.getElementById('counter').textContent=`${String(n+1).padStart(2,'0')} / ${String(this.slides.length).padStart(2,'0')}`;
+    document.getElementById('locLabel').textContent=this.labels[n];
+    document.getElementById('progress').style.width=((n+1)/this.slides.length*100)+'%';
+    if(opt.instant)requestAnimationFrame(()=>requestAnimationFrame(()=>this.stage.classList.remove('instant')));
+  }
+}
+window.__deck=new SlidePresentation();
+
+/* ===========================================
+   INLINE EDITING — hover top-left corner or press E; edits autosave in this browser; Ctrl/Cmd+S downloads the file
+   =========================================== */
+const editor={isActive:false,key:'revenue-system-keynote-edits',
+  els:()=>[...document.querySelectorAll('[data-edit]')],
+  toggleEditMode(){this.isActive=!this.isActive;document.body.classList.toggle('editing',this.isActive);
+    document.getElementById('editToggle').classList.toggle('active',this.isActive);
+    this.els().forEach(e=>e.contentEditable=this.isActive);if(!this.isActive)this.save()},
+  save(){try{localStorage.setItem(this.key,JSON.stringify(this.els().map(e=>e.innerHTML)))}catch(e){}},
+  restore(){try{const v=JSON.parse(localStorage.getItem(this.key)||'null');if(v)this.els().forEach((e,i)=>{if(v[i]!=null)e.innerHTML=v[i]})}catch(e){}},
+  download(){const h='<!DOCTYPE html>\n'+document.documentElement.outerHTML.replace(/ contenteditable="(true|false)"/g,'');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download='revenue-system-keynote.html';a.click()}};
+editor.restore();
+document.getElementById('editToggle').addEventListener('click',()=>editor.toggleEditMode());
+const hz=document.getElementById('hotzone'),et=document.getElementById('editToggle');let hideT=null;
+hz.addEventListener('mouseenter',()=>{clearTimeout(hideT);et.classList.add('show')});
+hz.addEventListener('mouseleave',()=>{hideT=setTimeout(()=>{if(!editor.isActive)et.classList.remove('show')},400)});
+et.addEventListener('mouseenter',()=>clearTimeout(hideT));
+et.addEventListener('mouseleave',()=>{hideT=setTimeout(()=>{if(!editor.isActive)et.classList.remove('show')},400)});
+hz.addEventListener('click',()=>editor.toggleEditMode());
+document.addEventListener('keydown',e=>{
+  if((e.key==='e'||e.key==='E')&&!e.target.isContentEditable)editor.toggleEditMode();
+  if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();editor.save();editor.download()}});
+document.addEventListener('input',()=>editor.isActive&&editor.save());
+</script>
+</body>
+</html>

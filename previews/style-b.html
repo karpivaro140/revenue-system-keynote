@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Revenue Operating System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400;1,8..60,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===========================================
+   THEME — "Engineered Stack" (Signal template vocabulary):
+   navy field, cream type, antique gold for rules/italics/figures only
+   =========================================== */
+:root{
+  --stage-bg:#141b33; --slide-bg:#1c2644;
+  --navy:#1c2644; --navy2:#232f55; --cream:#f0ece3; --warm:#e2dcd0; --muted:#8a96a8; --hint:#4e5a6e; --gold:#c8a870; --border:#34406a;
+  --serif:'Source Serif 4',serif; --sans:'DM Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   Include this ENTIRE file in every presentation.
+   Slides are authored at 1920×1080 and scaled as a whole.
+   =========================================== */
+
+/* 1. Lock the browser viewport */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 2. Full-window deck viewport */
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 3. Fixed 16:9 design canvas.
+   JavaScript sets transform: translate(...) scale(...). */
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+/* 4. Slides stack inside the fixed stage.
+   Content must be laid out at 1920×1080, not reflowed per device. */
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+/* 5. Keep media inside authored slide bounds */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 6. Presentation chrome stays outside the slide design system */
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* 7. Print one fixed-size slide per page */
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+/* 8. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+
+/* ===========================================
+   TITLE SLIDE
+   =========================================== */
+.slide{color:var(--warm);font-family:var(--sans)}
+.gridtex{position:absolute;inset:0;background-image:linear-gradient(rgba(240,236,227,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(240,236,227,.035) 1px,transparent 1px);background-size:80px 80px}
+.top,.bottom{position:absolute;left:120px;right:120px;display:flex;justify-content:space-between;font:400 17px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.top{top:72px;padding-bottom:22px;border-bottom:1px solid var(--border)}
+.bottom{bottom:64px;padding-top:22px;border-top:1px solid var(--border);color:var(--hint)}
+.top b{color:var(--gold);font-weight:500}
+.copy{position:absolute;left:120px;top:250px;width:860px}
+.kicker{font:500 19px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+h1{font-family:var(--serif);font-weight:400;font-size:124px;line-height:1.0;letter-spacing:-.025em;color:var(--cream);margin-top:30px}
+h1 em{font-style:italic;color:var(--gold)}
+.rule{width:120px;height:1px;background:var(--gold);margin:48px 0 36px}
+.sub{font-size:30px;line-height:1.45;color:var(--muted);width:640px}
+.sub strong{color:var(--warm);font-weight:500}
+
+/* === EXPLODED STACK DIAGRAM === */
+.stack{position:absolute;left:1000px;top:150px;width:820px;height:820px}
+.stack .face{fill:rgba(240,236,227,.035);stroke:rgba(240,236,227,.55);stroke-width:1.2}
+.stack .edge{fill:#161f3a;stroke:rgba(240,236,227,.35);stroke-width:1}
+.stack .inner{fill:none;stroke:rgba(200,168,112,.45);stroke-width:1;stroke-dasharray:4 6}
+.stack .lead{stroke:var(--gold);stroke-width:1;stroke-dasharray:1;stroke-dashoffset:1}
+.stack .n{font:500 16px var(--mono);fill:var(--gold);letter-spacing:.12em}
+.stack .t{font:400 26px var(--sans);fill:var(--cream)}
+.stack .top-face{fill:rgba(200,168,112,.16);stroke:var(--gold);stroke-width:1.5}
+.spine{stroke:var(--gold);stroke-width:1.5;stroke-dasharray:1;stroke-dashoffset:1}
+.plate{opacity:0}
+.tag{opacity:0}
+
+/* === MOTION — layers drop into place from the foundation up; a gold spine ties them === */
+.slide.visible .reveal{animation:rise 1s var(--ease) both}
+.slide.visible .kicker{animation-delay:.1s}.slide.visible h1{animation-delay:.22s}.slide.visible .rule{animation-delay:.45s}.slide.visible .sub{animation-delay:.55s}
+.slide.visible .plate{animation:settle 1s var(--ease) forwards}
+.slide.visible .p1{animation-delay:.5s}.slide.visible .p2{animation-delay:.75s}.slide.visible .p3{animation-delay:1.0s}.slide.visible .p4{animation-delay:1.25s}.slide.visible .p5{animation-delay:1.5s}
+.slide.visible .lead{animation:draw .6s var(--ease) forwards}
+.slide.visible .l1{animation-delay:1.0s}.slide.visible .l2{animation-delay:1.25s}.slide.visible .l3{animation-delay:1.5s}.slide.visible .l4{animation-delay:1.75s}.slide.visible .l5{animation-delay:2.0s}
+.slide.visible .tag{animation:fade .6s var(--ease) forwards}
+.slide.visible .g1{animation-delay:1.2s}.slide.visible .g2{animation-delay:1.45s}.slide.visible .g3{animation-delay:1.7s}.slide.visible .g4{animation-delay:1.95s}.slide.visible .g5{animation-delay:2.2s}
+.slide.visible .spine{animation:draw 1.4s var(--ease) 2.3s forwards}
+@keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes settle{from{opacity:0;transform:translateY(-60px)}to{opacity:1;transform:none}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes fade{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+<section class="slide active visible" aria-label="Title">
+  <div class="gridtex"></div>
+  <div class="top"><span>RevOps Strategy Office</span><b>Briefing · 01</b></div>
+  <div class="copy">
+    <div class="kicker reveal">Revenue Operations</div>
+    <h1 class="reveal">Revenue, <em>engineered</em> as one system.</h1>
+    <div class="rule reveal"></div>
+    <p class="sub reveal">Five layers, one loop: <strong>strategy</strong> sets direction, <strong>data</strong> and <strong>pipeline</strong> carry it, <strong>forecasting</strong> and <strong>AI</strong> turn it into decisions.</p>
+  </div>
+  <div class="bottom"><span>Go-to-market · CRM · Pipeline · Forecast · AI</span><span>2026</span></div>
+
+  <svg class="stack" viewBox="0 0 820 820" role="img" aria-label="Exploded stack of five layers: strategy at the base, then CRM data, pipeline, forecast, and AI decisions at the top">
+    <!-- isometric plates: centre x=300, half-width 250, half-height 125; y from base (690) upward in 120 steps -->
+    <line class="spine" pathLength="1" x1="300" y1="690" x2="300" y2="210"/>
+    <g class="plate p1"><polygon class="edge" points="50,690 300,815 550,690 550,706 300,831 50,706"/><polygon class="face" points="300,565 550,690 300,815 50,690"/><polygon class="inner" points="300,610 460,690 300,770 140,690"/></g>
+    <g class="plate p2"><polygon class="edge" points="50,570 300,695 550,570 550,586 300,711 50,586"/><polygon class="face" points="300,445 550,570 300,695 50,570"/><polygon class="inner" points="300,490 460,570 300,650 140,570"/></g>
+    <g class="plate p3"><polygon class="edge" points="50,450 300,575 550,450 550,466 300,591 50,466"/><polygon class="face" points="300,325 550,450 300,575 50,450"/><polygon class="inner" points="300,370 460,450 300,530 140,450"/></g>
+    <g class="plate p4"><polygon class="edge" points="50,330 300,455 550,330 550,346 300,471 50,346"/><polygon class="face" points="300,205 550,330 300,455 50,330"/><polygon class="inner" points="300,250 460,330 300,410 140,330"/></g>
+    <g class="plate p5"><polygon class="edge" points="50,210 300,335 550,210 550,226 300,351 50,226"/><polygon class="top-face" points="300,85 550,210 300,335 50,210"/><circle cx="300" cy="210" r="7" fill="#c8a870"/></g>
+    <!-- leaders + labels -->
+    <line class="lead l1" pathLength="1" x1="562" y1="690" x2="640" y2="690"/><g class="tag g1"><text class="n" x="654" y="674">01</text><text class="t" x="654" y="704">Strategy</text></g>
+    <line class="lead l2" pathLength="1" x1="562" y1="570" x2="640" y2="570"/><g class="tag g2"><text class="n" x="654" y="554">02</text><text class="t" x="654" y="584">CRM data</text></g>
+    <line class="lead l3" pathLength="1" x1="562" y1="450" x2="640" y2="450"/><g class="tag g3"><text class="n" x="654" y="434">03</text><text class="t" x="654" y="464">Pipeline</text></g>
+    <line class="lead l4" pathLength="1" x1="562" y1="330" x2="640" y2="330"/><g class="tag g4"><text class="n" x="654" y="314">04</text><text class="t" x="654" y="344">Forecast</text></g>
+    <line class="lead l5" pathLength="1" x1="562" y1="210" x2="640" y2="210"/><g class="tag g5"><text class="n" x="654" y="194">05</text><text class="t" x="654" y="224">AI decisions</text></g>
+  </svg>
+</section>
+</main>
+</div>
+<script>
+(function(){const s=document.getElementById('deckStage');const f=()=>{const k=Math.min(innerWidth/1920,innerHeight/1080);s.style.transform=`translate(${(innerWidth-1920*k)/2}px,${(innerHeight-1080*k)/2}px) scale(${k})`};f();addEventListener('resize',f)})();
+</script>
+</body>
+</html>
